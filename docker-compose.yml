@@ -1,0 +1,59 @@
+# Levanta la pasarela con datos de demostración en http://localhost:8530
+# Los correos no salen a internet: Mailpit los atrapa en http://localhost:8535
+services:
+  app:
+    build: .
+    image: api-notificaciones
+    ports:
+      - "8530:80"
+    environment:
+      APP_NAME: "Pasarela de notificaciones"
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_URL: http://localhost:8530
+      APP_DEMO: "true"
+      APP_LOCALE: es
+      DB_CONNECTION: mariadb
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: notificaciones
+      DB_USERNAME: notificaciones
+      DB_PASSWORD: notificaciones_demo
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      MAIL_MAILER: smtp
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_FROM_ADDRESS: avisos@demo.test
+      LOG_CHANNEL: stderr
+    volumes:
+      - storage:/var/www/html/storage
+    depends_on:
+      db:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  db:
+    image: mariadb:11.4
+    environment:
+      MARIADB_DATABASE: notificaciones
+      MARIADB_USER: notificaciones
+      MARIADB_PASSWORD: notificaciones_demo
+      MARIADB_ROOT_PASSWORD: root_demo
+    volumes:
+      - db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:v1.21
+    ports:
+      - "8535:8025"
+
+volumes:
+  db:
+  storage:
